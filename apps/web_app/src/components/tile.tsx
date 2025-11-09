@@ -104,18 +104,20 @@ const TileBackdrop = styled.div<{ $visual: TileVisual; $radius: number }>`
 
 const trailFade = keyframes`
   0% {
-    opacity: 0.32;
-    transform: scale(1) translate3d(0, 0, 0);
+    opacity: 0.38;
+    transform: scale(0.98) translate3d(0, 0, 0);
   }
   100% {
     opacity: 0;
-    transform: scale(1.08) translate3d(0, 0, 0);
+    transform: scale(1.06) translate3d(6px, 6px, 0);
   }
 `;
 
 const TileTrail = styled.div<{
   $visual: TileVisual;
   $radius: number;
+  $duration: number;
+  $coarse: boolean;
 }>`
   position: absolute;
   inset: 0;
@@ -124,12 +126,15 @@ const TileTrail = styled.div<{
   filter: blur(16px);
   opacity: 0;
   pointer-events: none;
-  animation: ${trailFade} ${ANIMATION_DURATION}ms ease forwards;
+  animation: ${trailFade} ${({ $duration }) => $duration}ms ease forwards;
   z-index: 0;
-  @media (pointer: coarse) {
-    filter: blur(6px);
-    opacity: 0.2;
-  }
+  ${({ $coarse }) =>
+    $coarse
+      ? `
+    filter: blur(4px);
+    opacity: 0.32;
+  `
+      : ""}
 `;
 
 interface TileProps {
@@ -177,8 +182,9 @@ export const Tile = ({ tile, dimension, cellSize, gap, inset }: TileProps) => {
   const animationEasing = isCoarsePointer
     ? "cubic-bezier(0.2, 0.8, 0.3, 1)"
     : "cubic-bezier(0.18, 0.89, 0.32, 1.28)";
-  const shouldRenderTrail =
-    !isCoarsePointer && !prefersReducedMotion && tile.previousPosition && !tile.isMergedResult;
+const shouldRenderTrail =
+  !prefersReducedMotion && tile.previousPosition && !tile.isMergedResult;
+const trailDuration = animationDuration + (isCoarsePointer ? 60 : 0);
   useLayoutEffect(() => {
     const node = nodeRef.current;
     if (!node) {
@@ -224,7 +230,12 @@ export const Tile = ({ tile, dimension, cellSize, gap, inset }: TileProps) => {
       $radius={radius}
     >
       {shouldRenderTrail && (
-        <TileTrail $visual={visual} $radius={radius} />
+        <TileTrail
+          $visual={visual}
+          $radius={radius}
+          $duration={trailDuration}
+          $coarse={Boolean(isCoarsePointer)}
+        />
       )}
       <TileBackdrop $visual={visual} $radius={radius} />
       <TileSurface
