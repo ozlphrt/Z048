@@ -9,12 +9,15 @@ const popIn = keyframes`
     transform: scale(0.2);
     opacity: 0;
   }
-  45% {
-    transform: scale(1.12);
+  40% {
+    transform: scale(1.14);
     opacity: 1;
   }
-  70% {
-    transform: scale(0.93);
+  62% {
+    transform: scale(0.9);
+  }
+  82% {
+    transform: scale(1.03);
   }
   100% {
     transform: scale(1);
@@ -85,7 +88,7 @@ const TileSurface = styled.div<{
   ${({ $isNew }) =>
     $isNew &&
     css`
-      animation: ${popIn} 260ms cubic-bezier(0.25, 0.8, 0.3, 1);
+      animation: ${popIn} 320ms cubic-bezier(0.2, 0.75, 0.3, 1.15);
     `}
   ${({ $isMerged }) =>
     $isMerged &&
