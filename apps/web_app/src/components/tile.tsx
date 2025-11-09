@@ -6,12 +6,18 @@ import type { AppTheme, TileVisual } from "../theme/themes";
 
 const popIn = keyframes`
   0% {
-    transform: scale(0.4);
+    transform: scale(0.2);
     opacity: 0;
+  }
+  45% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(0.93);
   }
   100% {
     transform: scale(1);
-    opacity: 1;
   }
 `;
 
@@ -79,7 +85,7 @@ const TileSurface = styled.div<{
   ${({ $isNew }) =>
     $isNew &&
     css`
-      animation: ${popIn} 220ms cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      animation: ${popIn} 260ms cubic-bezier(0.25, 0.8, 0.3, 1);
     `}
   ${({ $isMerged }) =>
     $isMerged &&
