@@ -5,7 +5,11 @@ import { defineConfig } from "vite";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const GITHUB_PAGES_BASE = "/Z048/";
+const isGitHubPages = process.env.GITHUB_PAGES === "true";
+
 export default defineConfig({
+  base: isGitHubPages ? GITHUB_PAGES_BASE : "/",
   plugins: [react()],
   server: {
     port: 5173,
