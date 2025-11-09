@@ -66,6 +66,16 @@ const TileSurface = styled.div<{
   backdrop-filter: blur(16px);
   transition: background 180ms ease, box-shadow 200ms ease, color 200ms ease;
   z-index: 1;
+  @media (pointer: coarse) {
+    box-shadow: ${({ theme }) =>
+      theme.appearance === "dark"
+        ? "0 10px 18px rgba(8, 10, 24, 0.38)"
+        : "0 8px 16px rgba(40, 48, 72, 0.18)"};
+    backdrop-filter: blur(8px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition-duration: 120ms;
+  }
   ${({ $isNew }) =>
     $isNew &&
     css`
@@ -86,6 +96,10 @@ const TileBackdrop = styled.div<{ $visual: TileVisual; $radius: number }>`
   filter: blur(18px);
   opacity: 0.6;
   z-index: -1;
+  @media (pointer: coarse) {
+    filter: blur(10px);
+    opacity: 0.4;
+  }
 `;
 
 const trailFade = keyframes`
@@ -112,6 +126,10 @@ const TileTrail = styled.div<{
   pointer-events: none;
   animation: ${trailFade} ${ANIMATION_DURATION}ms ease forwards;
   z-index: 0;
+  @media (pointer: coarse) {
+    filter: blur(6px);
+    opacity: 0.2;
+  }
 `;
 
 interface TileProps {
@@ -150,7 +168,17 @@ export const Tile = ({ tile, dimension, cellSize, gap, inset }: TileProps) => {
     inset,
     tile.previousPosition ?? tile.position
   );
-
+  const isCoarsePointer =
+    typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const animationDuration = prefersReducedMotion || isCoarsePointer ? 140 : ANIMATION_DURATION;
+  const animationEasing = isCoarsePointer
+    ? "cubic-bezier(0.2, 0.8, 0.3, 1)"
+    : "cubic-bezier(0.18, 0.89, 0.32, 1.28)";
+  const shouldRenderTrail =
+    !isCoarsePointer && !prefersReducedMotion && tile.previousPosition && !tile.isMergedResult;
   useLayoutEffect(() => {
     const node = nodeRef.current;
     if (!node) {
@@ -168,11 +196,11 @@ export const Tile = ({ tile, dimension, cellSize, gap, inset }: TileProps) => {
       // Force layout before applying transition
       node.getBoundingClientRect();
       requestAnimationFrame(() => {
-        node.style.transition = `transform ${ANIMATION_DURATION}ms cubic-bezier(0.18, 0.89, 0.32, 1.28)`;
+        node.style.transition = `transform ${animationDuration}ms ${animationEasing}`;
         node.style.transform = finalTransform;
       });
     } else {
-      node.style.transition = `transform ${ANIMATION_DURATION}ms cubic-bezier(0.18, 0.89, 0.32, 1.28)`;
+      node.style.transition = `transform ${animationDuration}ms ${animationEasing}`;
       node.style.transform = finalTransform;
     }
   }, [
@@ -181,7 +209,11 @@ export const Tile = ({ tile, dimension, cellSize, gap, inset }: TileProps) => {
     tile.position.col,
     tile.position.row,
     tile.previousPosition?.col,
-    tile.previousPosition?.row
+    tile.previousPosition?.row,
+    animationDuration,
+    animationEasing,
+    cellSize,
+    inset
   ]);
 
   return (
@@ -191,7 +223,7 @@ export const Tile = ({ tile, dimension, cellSize, gap, inset }: TileProps) => {
       $dimension={dimension}
       $radius={radius}
     >
-      {tile.previousPosition && !tile.isMergedResult && (
+      {shouldRenderTrail && (
         <TileTrail $visual={visual} $radius={radius} />
       )}
       <TileBackdrop $visual={visual} $radius={radius} />
