@@ -7,7 +7,7 @@
 - [x] Acceptance Criterion 2: Undo + scoring persistence
 - [x] Acceptance Criterion 3: Theme toggle
 - [ ] Acceptance Criterion 4: Supabase leaderboard
-- [ ] Acceptance Criterion 5: PWA + GitHub Pages deployment
+- [x] Acceptance Criterion 5: PWA + GitHub Pages deployment
 
 ## Backlog
 - [ ] React Native mobile client scaffolding
@@ -22,7 +22,7 @@
 - [ ] AC2 — Undo + local persistence.
 - [ ] AC3 — Supabase leaderboard integration.
 - [x] AC4 — Theme toggles and adaptive styling.
-- [ ] AC5 — PWA readiness + GitHub Pages deployment notes.
+- [x] AC5 — PWA readiness + GitHub Pages deployment notes.
 
 > Maintain order: complete acceptance criteria sequentially as agreed.
 

@@ -387,4 +387,4 @@ Error generating stack: `+l.message+`
   button {
     font-family: inherit;
   }
-`,Ud=document.getElementById("root");if(!Ud)throw new Error("Root element '#root' not found.");Jf(Ud).render($.jsx(z.StrictMode,{children:$.jsxs(Sm,{children:[$.jsx(Im,{}),$.jsx(Mh,{children:$.jsx(Rm,{})})]})}));
+`,Ud=document.getElementById("root");if(!Ud)throw new Error("Root element '#root' not found.");Jf(Ud).render($.jsx(z.StrictMode,{children:$.jsxs(Sm,{children:[$.jsx(Im,{}),$.jsx(Mh,{children:$.jsx(Rm,{})})]})}));if("serviceWorker"in navigator){const e="/Z048/sw.js";window.addEventListener("load",()=>{navigator.serviceWorker.register(e,{scope:"/Z048/"}).catch(()=>{})})}

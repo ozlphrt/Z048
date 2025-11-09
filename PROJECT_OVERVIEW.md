@@ -13,8 +13,8 @@
 1. Gameplay Core (web) — **completed**
 2. Undo & scoring persistence — **completed**
 3. Theme toggle & polish — **completed**
-4. Supabase leaderboard integration
-5. PWA hardening and GitHub Pages deployment
+4. Supabase leaderboard integration — **deferred**
+5. PWA hardening and GitHub Pages deployment — **completed**
 6. Mobile (React Native) foundation
 
 ## Dependencies
@@ -34,14 +34,14 @@
 - **Stack**: React 19 + Vite, React Context state, styled-components, Supabase (leaderboard coming in later milestones).
 
 ### Current Focus
-Planning Acceptance Criterion 4 — Supabase leaderboard integration.
+PWA polish — manifest, offline caching, installability on GitHub Pages.
 
 ### Milestones
 1. Core gameplay UX — **done**
 2. Undo + persistence — **done**
-3. Theme toggle and polish — **pending**
+3. Theme toggle and polish — **done**
 4. Online leaderboard integration — **pending**
-5. PWA packaging and GitHub Pages deployment — **pending**
+5. PWA packaging and GitHub Pages deployment — **done**
 
 ### Repository Structure
 - `apps/web`: Web application (React + Vite).

@@ -22,3 +22,14 @@ createRoot(rootElement).render(
   </StrictMode>
 );
 
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register(swUrl, { scope: import.meta.env.BASE_URL })
+      .catch(() => {
+        // Ignore registration failures; app will continue to function online.
+      });
+  });
+}
+

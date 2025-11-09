@@ -24,10 +24,18 @@
 ## Environment Variables
 - Supabase keys (for later phases) will live in `.env` files per app.
 
-## Scripts (planned)
+## Scripts
 - `pnpm dev` — Start web app in dev mode.
 - `pnpm lint` — Run linting across workspace.
 - `pnpm test` — Execute unit tests.
+- `pnpm --filter web_app build` — Production build (set `GITHUB_PAGES=true` before running to emit correct base path).
+- `node scripts/generate-icons.cjs` — Regenerate PWA icons (`apps/web_app/public/icons/*`).
+
+## PWA Notes
+- `apps/web_app/public/manifest.webmanifest` defines install metadata; keep `start_url`/`scope` aligned with `vite.config.ts` base logic.
+- `apps/web_app/public/sw.js` implements a lightweight stale-while-revalidate cache for app shell assets.
+- Service worker registration lives in `apps/web_app/src/main.tsx` and only runs in production builds.
+- When updating brand assets, regenerate icons and redeploy (`docs/` folder) so GitHub Pages serves the latest bundle.
 ## Technical Setup
 
 ### Prerequisites
