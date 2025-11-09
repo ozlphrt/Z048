@@ -1,0 +1,35 @@
+{
+  "name": "modern-2048-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo for modern glassmorphic 2048 game across web and mobile",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@8.15.6",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter web_app dev",
+    "build": "pnpm --filter web_app build",
+    "preview": "pnpm --filter web_app preview",
+    "lint": "eslint \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\"",
+    "test": "pnpm test --recursive",
+    "format": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.6.0",
+    "@typescript-eslint/parser": "^7.6.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.2.5",
+    "tsup": "^8.0.2",
+    "typescript": "^5.4.5",
+    "vitest": "^1.5.1"
+  }
+}

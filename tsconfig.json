@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@modern2048/game_core": ["packages/game_core/src"]
+    }
+  },
+  "include": ["apps", "packages", "scripts"]
+}
+

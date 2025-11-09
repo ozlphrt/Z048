@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["vite/client", "styled-components/cssprop"],
+    "baseUrl": ".",
+    "paths": {
+      "@modern2048/game_core": ["../../packages/game_core/src"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}
+

@@ -1,0 +1,23 @@
+{
+  "name": "@modern2048/game_core",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "private": false,
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "test": "vitest run",
+    "lint": "eslint \"src/**/*.{ts,tsx}\""
+  },
+  "dependencies": {
+    "nanoid": "^4.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30"
+  }
+}
+
