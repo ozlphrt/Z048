@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef, type CSSProperties } from "react";
 import styled, { css, keyframes, useTheme } from "styled-components";
 import type { TileState } from "@modern2048/game_core";
 import { ANIMATION_DURATION } from "../constants/layout";
@@ -104,12 +104,13 @@ const TileBackdrop = styled.div<{ $visual: TileVisual; $radius: number }>`
 
 const trailFade = keyframes`
   0% {
-    opacity: 0.38;
-    transform: scale(0.98) translate3d(0, 0, 0);
+    opacity: var(--trail-opacity-start, 0.34);
+    transform: scale(var(--trail-scale-start, 0.98)) translate3d(0, 0, 0);
   }
   100% {
     opacity: 0;
-    transform: scale(1.06) translate3d(6px, 6px, 0);
+    transform: scale(var(--trail-scale-end, 1.05))
+      translate3d(var(--trail-dx, 6px), var(--trail-dy, 6px), 0);
   }
 `;
 
@@ -131,8 +132,8 @@ const TileTrail = styled.div<{
   ${({ $coarse }) =>
     $coarse
       ? `
-    filter: blur(4px);
-    opacity: 0.32;
+    filter: blur(6px);
+    opacity: 0.42;
   `
       : ""}
 `;
@@ -178,13 +179,29 @@ export const Tile = ({ tile, dimension, cellSize, gap, inset }: TileProps) => {
   const prefersReducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  const animationDuration = prefersReducedMotion || isCoarsePointer ? 140 : ANIMATION_DURATION;
+  const animationDuration = prefersReducedMotion
+    ? 140
+    : isCoarsePointer
+    ? 220
+    : ANIMATION_DURATION;
   const animationEasing = isCoarsePointer
-    ? "cubic-bezier(0.2, 0.8, 0.3, 1)"
+    ? "cubic-bezier(0.22, 0.72, 0.28, 1)"
     : "cubic-bezier(0.18, 0.89, 0.32, 1.28)";
-const shouldRenderTrail =
-  !prefersReducedMotion && tile.previousPosition && !tile.isMergedResult;
-const trailDuration = animationDuration + (isCoarsePointer ? 60 : 0);
+  const shouldRenderTrail =
+    !prefersReducedMotion && tile.previousPosition && !tile.isMergedResult;
+  const trailDuration = animationDuration + (isCoarsePointer ? 140 : 40);
+  const trailVector = isCoarsePointer ? 14 : 8;
+  const trailStyle = useMemo(
+    () =>
+      ({
+        "--trail-dx": `${trailVector}px`,
+        "--trail-dy": `${trailVector}px`,
+        "--trail-scale-start": isCoarsePointer ? 0.95 : 0.98,
+        "--trail-scale-end": isCoarsePointer ? 1.08 : 1.05,
+        "--trail-opacity-start": isCoarsePointer ? 0.48 : 0.34
+      }) as CSSProperties,
+    [isCoarsePointer, trailVector]
+  );
   useLayoutEffect(() => {
     const node = nodeRef.current;
     if (!node) {
@@ -235,6 +252,7 @@ const trailDuration = animationDuration + (isCoarsePointer ? 60 : 0);
           $radius={radius}
           $duration={trailDuration}
           $coarse={Boolean(isCoarsePointer)}
+          style={trailStyle}
         />
       )}
       <TileBackdrop $visual={visual} $radius={radius} />
