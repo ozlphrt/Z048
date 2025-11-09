@@ -24,8 +24,9 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-const themeEntries = Object.values(getThemes());
-const defaultTheme = themeEntries[0];
+const themeCollection = getThemes();
+const defaultTheme = themeCollection.ember ?? Object.values(themeCollection)[0];
+const themeEntries = Object.values(themeCollection);
 
 const getInitialTheme = (): AppTheme => {
   if (typeof window !== "undefined") {
