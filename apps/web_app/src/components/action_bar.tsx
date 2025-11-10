@@ -164,9 +164,40 @@ const Icon = styled.svg`
   stroke-linejoin: round;
 `;
 
-const SoundButton = styled(ActionButton)<{ $active: boolean }>`
-  ${({ $active }) => (!$active ? "opacity: 0.6;" : "")}
+const SoundButton = styled.button<{ $active: boolean }>`
+  appearance: none;
+  border: none;
+  border-radius: 16px;
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease, opacity 160ms ease;
+  ${({ theme }) => baseGlassSurface(theme.appearance)}
+  ${({ $active }) => (!$active ? "opacity: 0.55;" : "")}
+
+  &:hover:enabled {
+    transform: translateY(-1px);
+    filter: brightness(1.03);
+  }
+
+  &:active:enabled {
+    transform: translateY(0);
+    filter: brightness(0.95);
+  }
 `;
+const SoundIcon = styled.svg`
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+`;
+
 
 export const ActionBar = ({
   width,
@@ -228,7 +259,17 @@ export const ActionBar = ({
         aria-pressed={soundEnabled}
         aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
       >
-        {soundEnabled ? "🔈 Sound" : "🔇 Sound"}
+        <SoundIcon viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 9h3.5L12 5v14l-4.5-4H4z" />
+          {soundEnabled ? (
+            <>
+              <path d="M16 8c1.5 1.5 1.5 6 0 7.5" />
+              <path d="M18.5 5.5c3 3 3 9 0 12" />
+            </>
+          ) : (
+            <path d="M19 5 5 19" />
+          )}
+        </SoundIcon>
       </SoundButton>
       <AppearanceToggle
         type="button"
