@@ -9,11 +9,15 @@ interface TriggerOptions {
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
-const createWoodClickBuffer = (ctx: BaseAudioContext, options?: Partial<{ tone: number; roughness: number; decay: number; duration: number }>) => {
-  const tone = options?.tone ?? 760;
-  const roughness = options?.roughness ?? 0.35;
-  const decay = options?.decay ?? 0.12;
-  const duration = options?.duration ?? 0.18;
+const createWoodClickBuffer = (
+  ctx: BaseAudioContext,
+  options?: Partial<{ tone: number; roughness: number; decay: number; duration: number; body: number }>
+) => {
+  const tone = options?.tone ?? 780;
+  const roughness = options?.roughness ?? 0.45;
+  const decay = options?.decay ?? 0.11;
+  const duration = options?.duration ?? 0.14;
+  const body = options?.body ?? 0.18;
   const sampleRate = ctx.sampleRate;
   const length = Math.floor(sampleRate * duration);
   const buffer = ctx.createBuffer(1, length, sampleRate);
@@ -21,16 +25,23 @@ const createWoodClickBuffer = (ctx: BaseAudioContext, options?: Partial<{ tone: 
 
   let phase = 0;
   const baseFreq = tone;
-  const overtone = tone * 1.62;
+  const overtone = tone * 1.32;
+  let noiseMemory = 0;
 
   for (let i = 0; i < length; i += 1) {
     const t = i / sampleRate;
     const envelope = Math.exp(-t / decay);
+    const bodyEnv = Math.exp(-t / (decay * 2.2));
     phase += (2 * Math.PI * baseFreq) / sampleRate;
-    const primary = Math.sin(phase) * envelope * 0.6;
-    const secondary = Math.sin((2 * Math.PI * overtone * t) + phase * 0.3) * envelope * 0.25;
-    const noise = (Math.random() * 2 - 1) * envelope * roughness;
-    data[i] = clamp(primary + secondary + noise, -1, 1);
+
+    const tonal = Math.sin(phase) * envelope * 0.18;
+    const overtonePhase = Math.sin((2 * Math.PI * overtone * t) + phase * 0.45) * envelope * 0.12;
+    const white = (Math.random() * 2 - 1) * roughness;
+    noiseMemory = noiseMemory * 0.55 + white * 0.45;
+    const click = noiseMemory * envelope * 0.9;
+    const bodyHit = (Math.random() * 2 - 1) * body * bodyEnv;
+
+    data[i] = clamp(click + tonal + overtonePhase + bodyHit, -1, 1);
   }
 
   return buffer;
@@ -65,8 +76,14 @@ class SoundEngine {
   }
 
   private prepareBuffers(ctx: AudioContext) {
-    this.buffers.set("click", createWoodClickBuffer(ctx, { tone: 860, roughness: 0.24, decay: 0.09, duration: 0.14 }));
-    this.buffers.set("thud", createWoodClickBuffer(ctx, { tone: 480, roughness: 0.4, decay: 0.18, duration: 0.22 }));
+    this.buffers.set(
+      "click",
+      createWoodClickBuffer(ctx, { tone: 1150, roughness: 0.3, decay: 0.08, duration: 0.12, body: 0.05 })
+    );
+    this.buffers.set(
+      "thud",
+      createWoodClickBuffer(ctx, { tone: 360, roughness: 0.55, decay: 0.2, duration: 0.24, body: 0.22 })
+    );
   }
 
   private trigger(name: string, options?: TriggerOptions) {
