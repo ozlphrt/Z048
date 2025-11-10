@@ -1,12 +1,16 @@
-const CACHE_NAME = "z048-app-shell-v1";
-const ASSET_MATCH = new RegExp("\\.(?:js|css|woff2?|png|svg|webmanifest)$");
+const CACHE_NAME = "z048-app-shell-v2";
+const ASSET_MATCH = new RegExp("\\.(?:js|css|woff2?|png|svg|webmanifest|wav)$");
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(["./", "./index.html", "./favicon.svg", "./manifest.webmanifest"]).catch(() => {})
-    )
+    caches
+      .open(CACHE_NAME)
+      .then((cache) =>
+        cache
+          .addAll(["./", "./index.html", "./favicon.svg", "./manifest.webmanifest", "./audio/mouse_click.wav"])
+          .catch(() => {})
+      )
   );
 });
 

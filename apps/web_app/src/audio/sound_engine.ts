@@ -7,12 +7,23 @@ interface TriggerOptions {
 }
 
 const CLICK_URL = `${import.meta.env.BASE_URL}audio/mouse_click.wav`;
-const clickSamplePromise: Promise<ArrayBuffer | null> =
-  typeof fetch === "function"
-    ? fetch(CLICK_URL)
-        .then((response) => (response.ok ? response.arrayBuffer() : null))
-        .catch(() => null)
-    : Promise.resolve(null);
+const preloadedClickSample: Promise<ArrayBuffer | null> =
+  typeof fetch === "function" ? fetchClickSample({ cache: "force-cache" }) : Promise.resolve(null);
+
+async function fetchClickSample(init?: RequestInit): Promise<ArrayBuffer | null> {
+  if (typeof fetch !== "function") {
+    return null;
+  }
+  try {
+    const response = await fetch(CLICK_URL, init);
+    if (!response.ok) {
+      return null;
+    }
+    return await response.arrayBuffer();
+  } catch {
+    return null;
+  }
+}
 
 class SoundEngine {
   private context: AudioContext | null = null;
@@ -43,22 +54,30 @@ class SoundEngine {
     }
 
     if (!this.initialized && this.context) {
-      await this.loadBuffers(this.context);
-      this.initialized = true;
+      this.initialized = await this.loadBuffers(this.context);
     }
   }
 
-  private async loadBuffers(ctx: AudioContext) {
+  private async loadBuffers(ctx: AudioContext): Promise<boolean> {
+    if (this.buffers.has("click")) {
+      return true;
+    }
+
     try {
-      const arrayBuffer = await clickSamplePromise;
+      const arrayBuffer =
+        (await preloadedClickSample) ?? (await fetchClickSample({ cache: "force-cache" })) ?? (await fetchClickSample());
       if (!arrayBuffer) {
-        return;
+        console.warn("[SoundEngine] Unable to load click sample:", CLICK_URL);
+        return false;
       }
       const clickBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
       this.buffers.set("click", clickBuffer);
       this.buffers.set("thud", clickBuffer);
-    } catch {
+      return true;
+    } catch (error) {
+      console.warn("[SoundEngine] Failed to decode click sample:", error);
       // Silently ignore failures; sounds will no-op if assets unavailable.
+      return false;
     }
   }
 
