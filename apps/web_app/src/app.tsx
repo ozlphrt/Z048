@@ -3,6 +3,7 @@ import styled from "styled-components";
 import { GameBoard } from "./components/game_board";
 import { ScorePanel } from "./components/score_panel";
 import { ActionBar } from "./components/action_bar";
+import { MobileSwipePad } from "./components/mobile_swipe_pad";
 
 const Shell = styled.main`
   display: flex;
@@ -38,6 +39,7 @@ export default function App() {
         topOffset={panelHeight + actionHeight + 48}
       />
       <ActionBar width={boardWidth} onHeightChange={handleActionHeight} />
+      <MobileSwipePad width={boardWidth} />
     </Shell>
   );
 }
