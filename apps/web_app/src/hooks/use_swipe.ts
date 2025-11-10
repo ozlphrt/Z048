@@ -5,17 +5,17 @@ interface PointerSnapshot {
   id: number;
   x: number;
   y: number;
-  time: number;
 }
 
 interface SwipeHandlers {
   onPointerDown: (event: React.PointerEvent) => void;
+  onPointerMove: (event: React.PointerEvent) => void;
   onPointerUp: (event: React.PointerEvent) => void;
   onPointerLeave: (event: React.PointerEvent) => void;
   onPointerCancel: (event: React.PointerEvent) => void;
 }
 
-const SWIPE_THRESHOLD = 28;
+const SWIPE_THRESHOLD = 18;
 
 export const useSwipe = (
   onDirection: (direction: MoveDirection) => void,
@@ -45,14 +45,46 @@ export const useSwipe = (
       if (event.pointerType === "mouse" && event.button !== 0) {
         return;
       }
+      if (event.currentTarget.setPointerCapture) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
       pointerRef.current = {
         id: event.pointerId,
         x: event.clientX,
-        y: event.clientY,
-        time: performance.now()
+        y: event.clientY
       };
     },
     [enabled]
+  );
+
+  const releaseCapture = useCallback((event: React.PointerEvent) => {
+    if (event.currentTarget.releasePointerCapture) {
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        // capture might not be set; ignore
+      }
+    }
+  }, []);
+
+  const attemptResolve = useCallback(
+    (event: React.PointerEvent) => {
+      const start = pointerRef.current;
+      if (!start || start.id !== event.pointerId) {
+        return false;
+      }
+      const dx = event.clientX - start.x;
+      const dy = event.clientY - start.y;
+      const direction = resolveDirection(dx, dy);
+      if (direction) {
+        pointerRef.current = null;
+        onDirection(direction);
+        releaseCapture(event);
+        return true;
+      }
+      return false;
+    },
+    [onDirection, releaseCapture]
   );
 
   const onPointerComplete = useCallback(
@@ -61,26 +93,28 @@ export const useSwipe = (
         resetPointer();
         return;
       }
-      const start = pointerRef.current;
-      if (!start || start.id !== event.pointerId) {
-        return;
-      }
-      const dx = event.clientX - start.x;
-      const dy = event.clientY - start.y;
-      const direction = resolveDirection(dx, dy);
-      resetPointer();
-      if (direction) {
-        onDirection(direction);
+      if (!attemptResolve(event)) {
+        releaseCapture(event);
+        resetPointer();
       }
     },
-    [enabled, onDirection]
+    [attemptResolve, enabled, releaseCapture]
   );
 
   return {
     onPointerDown,
+    onPointerMove: (event) => {
+      if (!enabled) {
+        return;
+      }
+      attemptResolve(event);
+    },
     onPointerUp: onPointerComplete,
     onPointerLeave: onPointerComplete,
-    onPointerCancel: () => resetPointer()
+    onPointerCancel: (event) => {
+      releaseCapture(event);
+      resetPointer();
+    }
   };
 };
 

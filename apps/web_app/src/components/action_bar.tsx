@@ -4,13 +4,24 @@ import { useGame } from "../state/game_provider";
 import { useThemeSwitcher } from "../state/theme_provider";
 import { useSound } from "../state/sound_provider";
 
+const CONTROL_HEIGHT = 48;
+
 const Bar = styled.div<{ $width: number }>`
-  display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
+  display: flex;
   width: ${({ $width }) => `${$width}px`};
-  gap: 10px;
+  gap: 12px;
   align-items: center;
   box-sizing: border-box;
+`;
+
+const Cluster = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const RightCluster = styled(Cluster)`
+  margin-left: auto;
 `;
 
 const baseGlassSurface = (appearance: "light" | "dark") =>
@@ -32,7 +43,7 @@ const ActionButton = styled.button`
   appearance: none;
   border: none;
   border-radius: 999px;
-  padding: 10px 18px;
+  padding: 0 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -42,6 +53,7 @@ const ActionButton = styled.button`
   letter-spacing: 0.02em;
   cursor: pointer;
   transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+  height: ${CONTROL_HEIGHT}px;
   ${({ theme }) => baseGlassSurface(theme.appearance)}
 
   &:hover:enabled {
@@ -64,8 +76,8 @@ const ActionButton = styled.button`
 const UndoButton = styled.button`
   appearance: none;
   border: none;
-  width: 48px;
-  height: 48px;
+  width: ${CONTROL_HEIGHT}px;
+  height: ${CONTROL_HEIGHT}px;
   border-radius: 18px;
   display: inline-flex;
   align-items: center;
@@ -104,17 +116,26 @@ const UndoButton = styled.button`
 
 const ThemeNameButton = styled.button`
   appearance: none;
-  background: none;
   border: none;
+  border-radius: 999px;
   color: ${({ theme }) =>
     theme.appearance === "dark" ? "rgba(227, 235, 255, 0.75)" : "rgba(32, 42, 62, 0.78)"};
+  background: ${({ theme }) =>
+    theme.appearance === "dark" ? "rgba(255, 255, 255, 0.06)" : "rgba(18, 28, 46, 0.05)"};
+  border: 1px solid
+    ${({ theme }) =>
+      theme.appearance === "dark" ? "rgba(255, 255, 255, 0.16)" : "rgba(110, 128, 160, 0.22)"};
   font-size: 18px;
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: capitalize;
   cursor: pointer;
   transition: color 150ms ease;
-  justify-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  height: ${CONTROL_HEIGHT}px;
 
   &:hover {
     color: ${({ theme }) => (theme.appearance === "dark" ? "#f2f5ff" : "#12203a")};
@@ -126,9 +147,9 @@ const AppearanceToggle = styled.button<{ $mode: "light" | "dark" }>`
   appearance: none;
   border: none;
   border-radius: 999px;
-  width: 68px;
-  height: 32px;
-  padding: 4px;
+  width: 74px;
+  height: ${CONTROL_HEIGHT}px;
+  padding: 6px;
   cursor: pointer;
   transition: filter 160ms ease;
   ${({ theme }) => baseGlassSurface(theme.appearance)}
@@ -142,8 +163,8 @@ const AppearanceToggle = styled.button<{ $mode: "light" | "dark" }>`
 `;
 
 const ToggleHandle = styled.span`
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -168,8 +189,8 @@ const SoundButton = styled.button<{ $active: boolean }>`
   appearance: none;
   border: none;
   border-radius: 16px;
-  width: 46px;
-  height: 46px;
+  width: ${CONTROL_HEIGHT}px;
+  height: ${CONTROL_HEIGHT}px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -243,45 +264,49 @@ export const ActionBar = ({
 
   return (
     <Bar ref={barRef} $width={barWidth}>
-      <UndoButton type="button" onClick={handleUndo} disabled={!canUndo} aria-label="Undo">
-        <Icon viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-7.64 14.66" />
-          <path d="M3 4v5h5" />
-        </Icon>
-      </UndoButton>
-      <ThemeNameButton type="button" onClick={handleThemeToggle}>
-        {theme.title ?? theme.name}
-      </ThemeNameButton>
-      <SoundButton
-        type="button"
-        onClick={toggleSound}
-        $active={soundEnabled}
-        aria-pressed={soundEnabled}
-        aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
-      >
-        <SoundIcon viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4 9h3.5L12 5v14l-4.5-4H4z" />
-          {soundEnabled ? (
-            <>
-              <path d="M16 8c1.5 1.5 1.5 6 0 7.5" />
-              <path d="M18.5 5.5c3 3 3 9 0 12" />
-            </>
-          ) : (
-            <path d="M19 5 5 19" />
-          )}
-        </SoundIcon>
-      </SoundButton>
-      <AppearanceToggle
-        type="button"
-        onClick={toggleAppearance}
-        $mode={appearance}
-        aria-label={appearance === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-      >
-        <ToggleHandle>{appearance === "dark" ? "☀" : "☾"}</ToggleHandle>
-      </AppearanceToggle>
-      <ActionButton type="button" onClick={handleReset}>
-        New Game
-      </ActionButton>
+      <Cluster>
+        <ThemeNameButton type="button" onClick={handleThemeToggle}>
+          {theme.title ?? theme.name}
+        </ThemeNameButton>
+        <SoundButton
+          type="button"
+          onClick={toggleSound}
+          $active={soundEnabled}
+          aria-pressed={soundEnabled}
+          aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
+        >
+          <SoundIcon viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 9h3.5L12 5v14l-4.5-4H4z" />
+            {soundEnabled ? (
+              <>
+                <path d="M16 8c1.5 1.5 1.5 6 0 7.5" />
+                <path d="M18.5 5.5c3 3 3 9 0 12" />
+              </>
+            ) : (
+              <path d="M19 5 5 19" />
+            )}
+          </SoundIcon>
+        </SoundButton>
+        <AppearanceToggle
+          type="button"
+          onClick={toggleAppearance}
+          $mode={appearance}
+          aria-label={appearance === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          <ToggleHandle>{appearance === "dark" ? "☀" : "☾"}</ToggleHandle>
+        </AppearanceToggle>
+      </Cluster>
+      <RightCluster>
+        <UndoButton type="button" onClick={handleUndo} disabled={!canUndo} aria-label="Undo">
+          <Icon viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-7.64 14.66" />
+            <path d="M3 4v5h5" />
+          </Icon>
+        </UndoButton>
+        <ActionButton type="button" onClick={handleReset}>
+          New Game
+        </ActionButton>
+      </RightCluster>
     </Bar>
   );
 };
