@@ -11,23 +11,39 @@ const clamp = (value: number, min: number, max: number) =>
 
 const createClickBuffer = (
   ctx: BaseAudioContext,
-  options?: Partial<{ decay: number; duration: number; intensity: number }>
+  options?: Partial<{ decay: number; duration: number; intensity: number; accentDelay: number }>
 ) => {
-  const decay = options?.decay ?? 0.08;
-  const duration = options?.duration ?? 0.12;
-  const intensity = options?.intensity ?? 0.65;
+  const decay = options?.decay ?? 0.06;
+  const duration = options?.duration ?? 0.11;
+  const intensity = options?.intensity ?? 0.75;
+  const accentDelay = options?.accentDelay ?? 0.008;
   const sampleRate = ctx.sampleRate;
   const length = Math.floor(sampleRate * duration);
   const buffer = ctx.createBuffer(1, length, sampleRate);
   const data = buffer.getChannelData(0);
 
+  let prevInput = 0;
+  let prevOutput = 0;
+  const highPassCoeff = 0.92;
+
   for (let i = 0; i < length; i += 1) {
     const t = i / sampleRate;
-    const envelope = Math.exp(-t / decay);
-    const white = Math.random() * 2 - 1;
-    const filtered = white * envelope * intensity;
-    const body = (Math.random() * 2 - 1) * envelope * 0.2;
-    data[i] = clamp(filtered + body, -1, 1);
+    const envPrimary = Math.exp(-t / decay);
+
+    const accentTime = Math.max(0, t - accentDelay);
+    const envAccent = accentTime > 0 ? Math.exp(-accentTime / (decay * 1.4)) : 0;
+
+    const white = (Math.random() * 2 - 1) * envPrimary * intensity;
+    const accent = accentTime > 0 ? (Math.random() * 2 - 1) * envAccent * (intensity * 0.55) : 0;
+    const body = (Math.random() * 2 - 1) * envPrimary * 0.18;
+
+    const input = clamp(white + accent + body, -1, 1);
+
+    const highPassed = highPassCoeff * (prevOutput + input - prevInput);
+    prevInput = input;
+    prevOutput = highPassed;
+
+    data[i] = clamp(highPassed, -1, 1);
   }
 
   return buffer;
