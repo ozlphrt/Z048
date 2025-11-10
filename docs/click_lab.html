@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Click Lab</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: dark light;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top, #1a1e28, #0a0c11 70%);
+        color: #f7f8fa;
+      }
+      body {
+        margin: 0;
+        padding: 32px 24px 48px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        align-items: center;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(1.8rem, 4vw, 2.4rem);
+        letter-spacing: 0.04em;
+      }
+      p {
+        margin: 0;
+        max-width: 640px;
+        text-align: center;
+        color: rgba(240, 244, 255, 0.7);
+      }
+      button {
+        appearance: none;
+        border: none;
+        border-radius: 18px;
+        padding: 18px 22px;
+        min-width: 220px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(120, 140, 200, 0.28));
+        color: inherit;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        transition: transform 140ms ease, filter 140ms ease, box-shadow 140ms ease;
+        box-shadow: 0 12px 26px rgba(5, 9, 18, 0.4);
+      }
+      button:hover {
+        transform: translateY(-2px);
+        filter: brightness(1.04);
+      }
+      button:active {
+        transform: translateY(1px);
+        filter: brightness(0.96);
+      }
+      .grid {
+        display: grid;
+        gap: 14px;
+        width: min(900px, 100%);
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      }
+      .meta {
+        font-size: 0.85rem;
+        margin-top: -6px;
+        opacity: 0.6;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Click Sound Lab</h1>
+    <p>
+      Tap each variant to preview a different wood click recipe. These are generated procedurally—
+      let me know which ID feels closest to the target and I’ll wire it into the game.
+    </p>
+    <div class="grid" id="buttons"></div>
+    <p class="meta">Tip: on first click, your browser may ask to allow audio.</p>
+    <script>
+      const recipes = [
+        { id: "A1", decay: 0.020, duration: 0.055, shape: [1, -0.72, 0.33, -0.18, 0.07] },
+        { id: "A2", decay: 0.018, duration: 0.05, shape: [1, -0.52, 0.26, -0.11] },
+        { id: "B1", decay: 0.027, duration: 0.065, shape: [1, -0.66, 0.31, -0.17, 0.08, -0.03] },
+        { id: "B2", decay: 0.024, duration: 0.06, shape: [1, -0.6, 0.28, -0.14, 0.05] },
+        { id: "C1", decay: 0.022, duration: 0.062, shape: [1, -0.5, 0.22, -0.09], accent: 0.006 },
+        { id: "C2", decay: 0.019, duration: 0.05, shape: [1, -0.42, 0.16, -0.06], accent: 0.004 },
+        { id: "D1", decay: 0.030, duration: 0.07, shape: [1, -0.78, 0.42, -0.22, 0.1], accent: 0.008 },
+        { id: "D2", decay: 0.034, duration: 0.08, shape: [1, -0.9, 0.52, -0.27, 0.12], accent: 0.01 },
+        { id: "E1", decay: 0.026, duration: 0.065, shape: [1, -0.55, 0.22, -0.09], smear: 0.2 },
+        { id: "E2", decay: 0.028, duration: 0.075, shape: [1, -0.62, 0.28, -0.12], smear: 0.35 }
+      ];
+
+      let context = null;
+
+      const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+      const createBuffer = (ctx, { decay, duration, shape, accent = 0, smear = 0 }) => {
+        const sampleRate = ctx.sampleRate;
+        const length = Math.max(1, Math.floor(sampleRate * duration));
+        const data = new Float32Array(length);
+
+        for (let tap = 0; tap < shape.length && tap < length; tap += 1) {
+          data[tap] = shape[tap];
+        }
+
+        if (accent > 0) {
+          const accentIndex = Math.round(sampleRate * accent);
+          if (accentIndex < length) {
+            data[accentIndex] += 0.6;
+          }
+        }
+
+        let prevInput = 0;
+        let prevHigh = 0;
+        const highPassCoeff = 0.88;
+
+        const out = new Float32Array(length);
+        for (let i = 0; i < length; i += 1) {
+          const t = i / sampleRate;
+          const env = Math.exp(-t / decay);
+
+          let sample = data[i];
+
+          if (smear > 0 && i > 0) {
+            const smearWindow = Math.min(i, Math.floor(sampleRate * smear * 0.001));
+            let accum = sample;
+            for (let j = 1; j <= smearWindow; j += 1) {
+              accum += data[i - j] * (1 - j / (smearWindow + 1));
+            }
+            sample = accum / (smearWindow + 1);
+          }
+
+          const high = highPassCoeff * (prevHigh + sample - prevInput);
+          prevInput = sample;
+          prevHigh = high;
+
+          out[i] = clamp(high * env, -1, 1);
+        }
+
+        const buffer = ctx.createBuffer(1, length, sampleRate);
+        buffer.copyToChannel(out, 0);
+        return buffer;
+      };
+
+      const playVariant = (recipe) => {
+        if (!context) {
+          context = new AudioContext();
+        }
+
+        const buffer = createBuffer(context, recipe);
+        const source = context.createBufferSource();
+        const gain = context.createGain();
+
+        source.buffer = buffer;
+        gain.gain.value = 0.6;
+        source.connect(gain).connect(context.destination);
+        source.start();
+      };
+
+      const container = document.getElementById("buttons");
+      recipes.forEach((recipe) => {
+        const button = document.createElement("button");
+        button.textContent = `Variant ${recipe.id}`;
+        button.addEventListener("click", () => playVariant(recipe));
+        container.appendChild(button);
+      });
+    </script>
+  </body>
+</html>
+
