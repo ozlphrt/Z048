@@ -11,39 +11,36 @@ const clamp = (value: number, min: number, max: number) =>
 
 const createClickBuffer = (
   ctx: BaseAudioContext,
-  options?: Partial<{ decay: number; duration: number; intensity: number; accentDelay: number }>
+  options?: Partial<{ decay: number; duration: number; shape?: readonly number[] }>
 ) => {
-  const decay = options?.decay ?? 0.06;
-  const duration = options?.duration ?? 0.11;
-  const intensity = options?.intensity ?? 0.75;
-  const accentDelay = options?.accentDelay ?? 0.008;
+  const decay = options?.decay ?? 0.03;
+  const duration = options?.duration ?? 0.08;
   const sampleRate = ctx.sampleRate;
-  const length = Math.floor(sampleRate * duration);
+  const length = Math.max(1, Math.floor(sampleRate * duration));
   const buffer = ctx.createBuffer(1, length, sampleRate);
   const data = buffer.getChannelData(0);
 
+  const shape = options?.shape ?? [1, -0.55, 0.32, -0.18, 0.08];
+  const impulse = new Float32Array(length);
+  for (let i = 0; i < shape.length && i < length; i += 1) {
+    impulse[i] = shape[i];
+  }
+
   let prevInput = 0;
-  let prevOutput = 0;
-  const highPassCoeff = 0.92;
+  let prevHigh = 0;
+  const highPassCoeff = 0.85;
 
   for (let i = 0; i < length; i += 1) {
     const t = i / sampleRate;
-    const envPrimary = Math.exp(-t / decay);
+    const envelope = Math.exp(-t / decay);
 
-    const accentTime = Math.max(0, t - accentDelay);
-    const envAccent = accentTime > 0 ? Math.exp(-accentTime / (decay * 1.4)) : 0;
+    const source = impulse[i];
 
-    const white = (Math.random() * 2 - 1) * envPrimary * intensity;
-    const accent = accentTime > 0 ? (Math.random() * 2 - 1) * envAccent * (intensity * 0.55) : 0;
-    const body = (Math.random() * 2 - 1) * envPrimary * 0.18;
+    const high = highPassCoeff * (prevHigh + source - prevInput);
+    prevInput = source;
+    prevHigh = high;
 
-    const input = clamp(white + accent + body, -1, 1);
-
-    const highPassed = highPassCoeff * (prevOutput + input - prevInput);
-    prevInput = input;
-    prevOutput = highPassed;
-
-    data[i] = clamp(highPassed, -1, 1);
+    data[i] = clamp(high * envelope, -1, 1);
   }
 
   return buffer;
@@ -78,8 +75,22 @@ class SoundEngine {
   }
 
   private prepareBuffers(ctx: AudioContext) {
-    this.buffers.set("click", createClickBuffer(ctx, { decay: 0.07, intensity: 0.8 }));
-    this.buffers.set("thud", createClickBuffer(ctx, { decay: 0.14, duration: 0.18, intensity: 0.95 }));
+    this.buffers.set(
+      "click",
+      createClickBuffer(ctx, {
+        decay: 0.022,
+        duration: 0.06,
+        shape: [1, -0.62, 0.34, -0.21, 0.12, -0.05]
+      })
+    );
+    this.buffers.set(
+      "thud",
+      createClickBuffer(ctx, {
+        decay: 0.05,
+        duration: 0.14,
+        shape: [1, -0.45, 0.26, -0.15, 0.08, -0.04]
+      })
+    );
   }
 
   private trigger(name: string, options?: TriggerOptions) {
