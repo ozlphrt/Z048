@@ -139,9 +139,17 @@
         return buffer;
       };
 
-      const playVariant = (recipe) => {
+      const playVariant = async (recipe) => {
         if (!context) {
           context = new AudioContext();
+        }
+        if (context.state === "suspended") {
+          try {
+            await context.resume();
+          } catch (error) {
+            console.error("Audio resume failed", error);
+            return;
+          }
         }
 
         const buffer = createBuffer(context, recipe);
@@ -158,7 +166,9 @@
       recipes.forEach((recipe) => {
         const button = document.createElement("button");
         button.textContent = `Variant ${recipe.id}`;
-        button.addEventListener("click", () => playVariant(recipe));
+        button.addEventListener("click", () => {
+          playVariant(recipe).catch((error) => console.error("Unable to play variant", error));
+        });
         container.appendChild(button);
       });
     </script>
