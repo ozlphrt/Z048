@@ -128,7 +128,7 @@ export const GameBoard = ({
     };
   }, [state.size, viewportHeight, viewportWidth, topOffset]);
 
-  const swipeHandlers = useSwipe(move, canAcceptInput);
+  const swipeHandlers = useSwipe(move, canAcceptInput, { suppressClickDuringSwipe: true });
   const handleUndoAction = useCallback(() => {
     if (!canUndo) {
       return;

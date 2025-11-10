@@ -55,6 +55,10 @@ export const useSwipe = (
       if (event.currentTarget.setPointerCapture) {
         event.currentTarget.setPointerCapture(event.pointerId);
       }
+      swipingRef.current = false;
+      if (event.pointerType !== "mouse") {
+        event.preventDefault();
+      }
       pointerRef.current = {
         id: event.pointerId,
         x: event.clientX,
@@ -115,7 +119,8 @@ export const useSwipe = (
       if (!enabled) {
         return;
       }
-      if (attemptResolve(event) && options?.suppressClickDuringSwipe) {
+      const resolved = attemptResolve(event);
+      if (options?.suppressClickDuringSwipe && (resolved || swipingRef.current)) {
         event.preventDefault();
       }
     },
