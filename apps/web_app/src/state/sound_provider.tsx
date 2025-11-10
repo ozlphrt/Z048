@@ -7,7 +7,7 @@ import {
   useState,
   type PropsWithChildren
 } from "react";
-import { basicAudioEngine, type SoundEffect } from "../audio/basic_audio_engine";
+import { hybridAudioEngine, type SoundEffect } from "../audio/hybrid_audio_engine";
 
 const STORAGE_KEY = "modern2048.sound";
 
@@ -37,16 +37,23 @@ export const SoundProvider = ({ children }: PropsWithChildren) => {
   const [enabled, setEnabled] = useState<boolean>(getInitialPreference);
 
   useEffect(() => {
-    basicAudioEngine.setEnabled(enabled);
+    hybridAudioEngine.setEnabled(enabled);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, enabled ? "on" : "off");
       if (enabled) {
-        basicAudioEngine.preload();
+        const prewarm = () => {
+          window.removeEventListener("pointerdown", prewarm, true);
+          window.removeEventListener("keydown", prewarm, true);
+          void hybridAudioEngine.prewarm();
+        };
+        window.addEventListener("pointerdown", prewarm, { capture: true, once: true });
+        window.addEventListener("keydown", prewarm, { capture: true, once: true });
+      }
     }
   }, [enabled]);
 
   const play = useCallback((effect: SoundEffect, payload?: { magnitude?: number }) => {
-    void basicAudioEngine.play(effect, payload);
+    void hybridAudioEngine.play(effect, payload);
   }, []);
 
   const toggle = useCallback(() => {
