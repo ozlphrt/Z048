@@ -15,16 +15,23 @@ interface SwipeHandlers {
   onPointerCancel: (event: React.PointerEvent) => void;
 }
 
+interface SwipeOptions {
+  suppressClickDuringSwipe?: boolean;
+}
+
 const SWIPE_THRESHOLD = 18;
 
 export const useSwipe = (
   onDirection: (direction: MoveDirection) => void,
-  enabled: boolean
+  enabled: boolean,
+  options?: SwipeOptions
 ): SwipeHandlers => {
   const pointerRef = useRef<PointerSnapshot | null>(null);
+  const swipingRef = useRef(false);
 
   const resetPointer = () => {
     pointerRef.current = null;
+    swipingRef.current = false;
   };
 
   const resolveDirection = (dx: number, dy: number): MoveDirection | null => {
@@ -78,6 +85,7 @@ export const useSwipe = (
       const direction = resolveDirection(dx, dy);
       if (direction) {
         pointerRef.current = null;
+        swipingRef.current = true;
         onDirection(direction);
         releaseCapture(event);
         return true;
@@ -107,7 +115,9 @@ export const useSwipe = (
       if (!enabled) {
         return;
       }
-      attemptResolve(event);
+      if (attemptResolve(event) && options?.suppressClickDuringSwipe) {
+        event.preventDefault();
+      }
     },
     onPointerUp: onPointerComplete,
     onPointerLeave: onPointerComplete,

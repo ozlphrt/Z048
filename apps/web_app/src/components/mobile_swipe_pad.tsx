@@ -45,7 +45,7 @@ const Hint = styled.span`
 
 export const MobileSwipePad = ({ width }: { width: number | null }) => {
   const { move, canAcceptInput } = useGame();
-  const swipeHandlers = useSwipe(move, canAcceptInput);
+  const swipeHandlers = useSwipe(move, canAcceptInput, { suppressClickDuringSwipe: true });
 
   const padWidth = useMemo(() => Math.max(320, width ?? 320), [width]);
 
