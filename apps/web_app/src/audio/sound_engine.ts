@@ -6,51 +6,20 @@ interface TriggerOptions {
   delay?: number;
 }
 
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value));
-
-const createClickBuffer = (
-  ctx: BaseAudioContext,
-  options?: Partial<{ decay: number; duration: number; shape?: readonly number[] }>
-) => {
-  const decay = options?.decay ?? 0.03;
-  const duration = options?.duration ?? 0.08;
-  const sampleRate = ctx.sampleRate;
-  const length = Math.max(1, Math.floor(sampleRate * duration));
-  const buffer = ctx.createBuffer(1, length, sampleRate);
-  const data = buffer.getChannelData(0);
-
-  const shape = options?.shape ?? [1, -0.55, 0.32, -0.18, 0.08];
-  const impulse = new Float32Array(length);
-  for (let i = 0; i < shape.length && i < length; i += 1) {
-    impulse[i] = shape[i];
-  }
-
-  let prevInput = 0;
-  let prevHigh = 0;
-  const highPassCoeff = 0.85;
-
-  for (let i = 0; i < length; i += 1) {
-    const t = i / sampleRate;
-    const envelope = Math.exp(-t / decay);
-
-    const source = impulse[i];
-
-    const high = highPassCoeff * (prevHigh + source - prevInput);
-    prevInput = source;
-    prevHigh = high;
-
-    data[i] = clamp(high * envelope, -1, 1);
-  }
-
-  return buffer;
-};
+const CLICK_URL = `${import.meta.env.BASE_URL}audio/mouse_click.wav`;
+const clickSamplePromise: Promise<ArrayBuffer | null> =
+  typeof fetch === "function"
+    ? fetch(CLICK_URL)
+        .then((response) => (response.ok ? response.arrayBuffer() : null))
+        .catch(() => null)
+    : Promise.resolve(null);
 
 class SoundEngine {
   private context: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private enabled = true;
   private buffers: Map<string, AudioBuffer> = new Map();
+  private initialized = false;
 
   public setEnabled(value: boolean) {
     this.enabled = value;
@@ -67,30 +36,30 @@ class SoundEngine {
       this.masterGain = this.context.createGain();
       this.masterGain.gain.value = this.enabled ? 1 : 0;
       this.masterGain.connect(this.context.destination);
-      this.prepareBuffers(this.context);
     }
+
     if (this.context.state === "suspended") {
       await this.context.resume().catch(() => undefined);
     }
+
+    if (!this.initialized && this.context) {
+      await this.loadBuffers(this.context);
+      this.initialized = true;
+    }
   }
 
-  private prepareBuffers(ctx: AudioContext) {
-    this.buffers.set(
-      "click",
-      createClickBuffer(ctx, {
-        decay: 0.022,
-        duration: 0.06,
-        shape: [1, -0.62, 0.34, -0.21, 0.12, -0.05]
-      })
-    );
-    this.buffers.set(
-      "thud",
-      createClickBuffer(ctx, {
-        decay: 0.05,
-        duration: 0.14,
-        shape: [1, -0.45, 0.26, -0.15, 0.08, -0.04]
-      })
-    );
+  private async loadBuffers(ctx: AudioContext) {
+    try {
+      const arrayBuffer = await clickSamplePromise;
+      if (!arrayBuffer) {
+        return;
+      }
+      const clickBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+      this.buffers.set("click", clickBuffer);
+      this.buffers.set("thud", clickBuffer);
+    } catch {
+      // Silently ignore failures; sounds will no-op if assets unavailable.
+    }
   }
 
   private trigger(name: string, options?: TriggerOptions) {
@@ -122,33 +91,33 @@ class SoundEngine {
 
     switch (effect) {
       case "move":
-        this.trigger("click", { playbackRate: 1.1, gain: 0.28 });
+        this.trigger("click", { playbackRate: 1.2, gain: 0.32 });
         break;
       case "spawn":
-        this.trigger("click", { playbackRate: 1.3, gain: 0.32 });
+        this.trigger("click", { playbackRate: 1.35, gain: 0.36 });
         break;
       case "merge": {
         const magnitude = payload?.magnitude ?? 4;
         const intensity = Math.min(1, Math.log2(magnitude) / 4);
-        this.trigger("thud", { playbackRate: 0.86 + intensity * 0.3, gain: 0.4 + intensity * 0.25 });
-        this.trigger("click", { playbackRate: 1 + intensity * 0.15, gain: 0.22 + intensity * 0.1, delay: 0.035 });
+        this.trigger("click", { playbackRate: 0.88, gain: 0.42 + intensity * 0.12 });
+        this.trigger("click", { playbackRate: 1.1 + intensity * 0.18, gain: 0.25 + intensity * 0.08, delay: 0.04 });
         break;
       }
       case "undo":
-        this.trigger("thud", { playbackRate: 0.92, gain: 0.28 });
+        this.trigger("click", { playbackRate: 0.9, gain: 0.3 });
         break;
       case "reset":
-        this.trigger("thud", { playbackRate: 0.85, gain: 0.22 });
-        this.trigger("click", { playbackRate: 1.25, gain: 0.2, delay: 0.05 });
+        this.trigger("click", { playbackRate: 0.85, gain: 0.28 });
+        this.trigger("click", { playbackRate: 1.4, gain: 0.24, delay: 0.05 });
         break;
       case "victory":
-        this.trigger("click", { playbackRate: 1.4, gain: 0.35 });
-        this.trigger("click", { playbackRate: 1.6, gain: 0.28, delay: 0.05 });
-        this.trigger("click", { playbackRate: 1.8, gain: 0.22, delay: 0.1 });
+        this.trigger("click", { playbackRate: 1.5, gain: 0.34 });
+        this.trigger("click", { playbackRate: 1.7, gain: 0.28, delay: 0.05 });
+        this.trigger("click", { playbackRate: 1.9, gain: 0.22, delay: 0.1 });
         break;
       case "defeat":
-        this.trigger("thud", { playbackRate: 0.72, gain: 0.38 });
-        this.trigger("thud", { playbackRate: 0.6, gain: 0.24, delay: 0.09 });
+        this.trigger("click", { playbackRate: 0.75, gain: 0.32 });
+        this.trigger("click", { playbackRate: 0.65, gain: 0.22, delay: 0.08 });
         break;
       default:
         break;
