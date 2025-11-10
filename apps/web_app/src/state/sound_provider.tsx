@@ -35,12 +35,31 @@ const getInitialPreference = (): boolean => {
 
 export const SoundProvider = ({ children }: PropsWithChildren) => {
   const [enabled, setEnabled] = useState<boolean>(getInitialPreference);
+  const [mobileMuted, setMobileMuted] = useState(false);
 
   useEffect(() => {
-    hybridAudioEngine.setEnabled(enabled);
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+    const media = window.matchMedia("(pointer: coarse)");
+    const update = () => setMobileMuted(media.matches);
+    update();
+    const handler = () => update();
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", handler);
+      return () => media.removeEventListener("change", handler);
+    }
+    media.addListener(handler);
+    return () => media.removeListener(handler);
+  }, []);
+
+  const effectiveEnabled = !mobileMuted && enabled;
+
+  useEffect(() => {
+    hybridAudioEngine.setEnabled(effectiveEnabled);
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, enabled ? "on" : "off");
-      if (enabled) {
+      window.localStorage.setItem(STORAGE_KEY, effectiveEnabled ? "on" : "off");
+      if (effectiveEnabled) {
         const prewarm = () => {
           window.removeEventListener("pointerdown", prewarm, true);
           window.removeEventListener("keydown", prewarm, true);
@@ -50,23 +69,32 @@ export const SoundProvider = ({ children }: PropsWithChildren) => {
         window.addEventListener("keydown", prewarm, { capture: true, once: true });
       }
     }
-  }, [enabled]);
+  }, [effectiveEnabled]);
 
-  const play = useCallback((effect: SoundEffect, payload?: { magnitude?: number }) => {
-    void hybridAudioEngine.play(effect, payload);
-  }, []);
+  const play = useCallback(
+    (effect: SoundEffect, payload?: { magnitude?: number }) => {
+      if (!effectiveEnabled) {
+        return;
+      }
+      void hybridAudioEngine.play(effect, payload);
+    },
+    [effectiveEnabled]
+  );
 
   const toggle = useCallback(() => {
+    if (mobileMuted) {
+      return;
+    }
     setEnabled((prev) => !prev);
-  }, []);
+  }, [mobileMuted]);
 
   const value = useMemo<SoundContextValue>(
     () => ({
-      enabled,
+      enabled: effectiveEnabled,
       toggle,
       play
     }),
-    [enabled, play, toggle]
+    [effectiveEnabled, play, toggle]
   );
 
   return <SoundContext.Provider value={value}>{children}</SoundContext.Provider>;
