@@ -7,7 +7,7 @@ import {
   useState,
   type PropsWithChildren
 } from "react";
-import { htmlAudioEngine, type SoundEffect } from "../audio/html_audio_engine";
+import { webAudioEngine, type SoundEffect } from "../audio/web_audio_engine";
 
 const STORAGE_KEY = "modern2048.sound";
 
@@ -37,14 +37,14 @@ export const SoundProvider = ({ children }: PropsWithChildren) => {
   const [enabled, setEnabled] = useState<boolean>(getInitialPreference);
 
   useEffect(() => {
-    htmlAudioEngine.setEnabled(enabled);
+    webAudioEngine.setEnabled(enabled);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, enabled ? "on" : "off");
     }
   }, [enabled]);
 
   const play = useCallback((effect: SoundEffect, payload?: { magnitude?: number }) => {
-    void htmlAudioEngine.play(effect, payload);
+    void webAudioEngine.play(effect, payload);
   }, []);
 
   const toggle = useCallback(() => {
