@@ -4,14 +4,14 @@ type ClipName = "clickLight" | "clickDark";
 
 interface ClipConfig {
   src: string;
-  baseGain?: number;
+  baseGain: number;
 }
 
 interface EffectOptions {
-  volume?: number;
-  playbackRate?: number;
-  offsetMs?: number;
   clip: ClipName;
+  volume: number;
+  playbackRate: number;
+  offsetMs?: number;
 }
 
 const CLIP_CONFIGS: Record<ClipName, ClipConfig> = {
@@ -47,12 +47,12 @@ const EFFECT_BUILDERS: Record<SoundEffect, (payload?: { magnitude?: number }) =>
       {
         clip: "clickDark",
         volume: 0.55 + intensity * 0.25,
-        playbackRate: 0.9 - intensity * 0.08
+        playbackRate: 0.92 - intensity * 0.08
       },
       {
         clip: "clickLight",
         volume: 0.4 + intensity * 0.2,
-        playbackRate: 1.1 + intensity * 0.2,
+        playbackRate: 1.12 + intensity * 0.18,
         offsetMs: 48
       }
     ];
@@ -111,12 +111,18 @@ const EFFECT_BUILDERS: Record<SoundEffect, (payload?: { magnitude?: number }) =>
   ]
 };
 
+const PER_CLIP_COOLDOWN_SECONDS = 0.045;
+
 class WebAudioEngine {
   private enabled = true;
   private context: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private buffers: Map<ClipName, AudioBuffer> = new Map();
+  private preloadPromise: Promise<void> | null = null;
   private loadPromises: Map<ClipName, Promise<void>> = new Map();
+  private queue: EffectOptions[][] = [];
+  private flushScheduled = false;
+  private lastPlayPerClip: Map<ClipName, number> = new Map();
 
   public setEnabled(value: boolean) {
     this.enabled = value;
@@ -127,7 +133,17 @@ class WebAudioEngine {
     }
   }
 
-  private async ensureContext(): Promise<void> {
+  public async prewarm(): Promise<void> {
+    if (!this.enabled) {
+      return;
+    }
+    if (!this.preloadPromise) {
+      this.preloadPromise = this.initContext();
+    }
+    return this.preloadPromise;
+  }
+
+  private async initContext(): Promise<void> {
     if (!this.context) {
       this.context = new AudioContext();
       this.masterGain = this.context.createGain();
@@ -137,17 +153,16 @@ class WebAudioEngine {
     if (this.context.state === "suspended") {
       await this.context.resume().catch(() => undefined);
     }
-    await this.loadBuffers();
+    await this.loadClips();
   }
 
-  private async loadBuffers(): Promise<void> {
+  private async loadClips(): Promise<void> {
     if (!this.context) {
       return;
     }
     const ctx = this.context;
-    const clips = Object.keys(CLIP_CONFIGS) as ClipName[];
     await Promise.all(
-      clips.map((clip) => {
+      (Object.keys(CLIP_CONFIGS) as ClipName[]).map((clip) => {
         if (this.buffers.has(clip)) {
           return Promise.resolve();
         }
@@ -158,7 +173,7 @@ class WebAudioEngine {
         if (typeof fetch !== "function") {
           return Promise.resolve();
         }
-        const loadPromise = fetch(config.src)
+        const promise = fetch(config.src)
           .then((response) => (response.ok ? response.arrayBuffer() : null))
           .then((arrayBuffer) => {
             if (!arrayBuffer) {
@@ -174,13 +189,50 @@ class WebAudioEngine {
           .finally(() => {
             this.loadPromises.delete(clip);
           });
-        this.loadPromises.set(clip, loadPromise);
-        return loadPromise;
+        this.loadPromises.set(clip, promise);
+        return promise;
       })
     );
   }
 
-  private playVariant(variant: EffectOptions) {
+  private scheduleFlush() {
+    if (this.flushScheduled) {
+      return;
+    }
+    this.flushScheduled = true;
+    const runner = () => {
+      this.flushScheduled = false;
+      void this.flushQueue();
+    };
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(runner);
+    } else {
+      setTimeout(runner, 0);
+    }
+  }
+
+  private async flushQueue() {
+    if (!this.enabled) {
+      this.queue = [];
+      return;
+    }
+    const batches = this.queue.splice(0);
+    if (batches.length === 0) {
+      return;
+    }
+    await this.prewarm();
+    if (!this.context || !this.masterGain) {
+      return;
+    }
+    const now = this.context.currentTime;
+    for (const batch of batches) {
+      for (const variant of batch) {
+        this.playVariant(variant, now);
+      }
+    }
+  }
+
+  private playVariant(variant: EffectOptions, referenceTime: number) {
     if (!this.context || !this.masterGain) {
       return;
     }
@@ -188,32 +240,34 @@ class WebAudioEngine {
     if (!buffer) {
       return;
     }
+    const lastPlay = this.lastPlayPerClip.get(variant.clip) ?? 0;
+    const startTime = Math.max(referenceTime, this.context.currentTime) + (variant.offsetMs ?? 0) / 1000;
+    if (startTime - lastPlay < PER_CLIP_COOLDOWN_SECONDS) {
+      return;
+    }
+    this.lastPlayPerClip.set(variant.clip, startTime);
+
     const source = this.context.createBufferSource();
     source.buffer = buffer;
-    source.playbackRate.value = variant.playbackRate ?? 1;
+    source.playbackRate.value = variant.playbackRate;
 
-    const gainNode = this.context.createGain();
-    const baseGain = CLIP_CONFIGS[variant.clip].baseGain ?? 1;
-    gainNode.gain.value = Math.max(0, Math.min(1, (variant.volume ?? 1) * baseGain));
-
-    source.connect(gainNode).connect(this.masterGain);
-    const startTime = this.context.currentTime + (variant.offsetMs ?? 0) / 1000;
+    const gain = this.context.createGain();
+    gain.gain.value = Math.max(0, Math.min(1, variant.volume * CLIP_CONFIGS[variant.clip].baseGain));
+    source.connect(gain).connect(this.masterGain);
     source.start(startTime);
   }
 
-  public async play(effect: SoundEffect, payload?: { magnitude?: number }): Promise<void> {
+  public play(effect: SoundEffect, payload?: { magnitude?: number }): Promise<void> {
     if (!this.enabled) {
-      return;
+      return Promise.resolve();
     }
-    await this.ensureContext();
-    if (!this.context || !this.masterGain) {
-      return;
+    const variants = EFFECT_BUILDERS[effect]?.(payload);
+    if (!variants || variants.length === 0) {
+      return Promise.resolve();
     }
-
-    const variants = EFFECT_BUILDERS[effect]?.(payload) ?? [];
-    for (const variant of variants) {
-      this.playVariant(variant);
-    }
+    this.queue.push(variants);
+    this.scheduleFlush();
+    return Promise.resolve();
   }
 }
 

@@ -40,6 +40,15 @@ export const SoundProvider = ({ children }: PropsWithChildren) => {
     webAudioEngine.setEnabled(enabled);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, enabled ? "on" : "off");
+      if (enabled) {
+        const prewarm = () => {
+          window.removeEventListener("pointerdown", prewarm, true);
+          window.removeEventListener("keydown", prewarm, true);
+          void webAudioEngine.prewarm();
+        };
+        window.addEventListener("pointerdown", prewarm, { capture: true, once: true });
+        window.addEventListener("keydown", prewarm, { capture: true, once: true });
+      }
     }
   }, [enabled]);
 
