@@ -25,25 +25,6 @@ const CLIP_CONFIGS: Record<ClipName, ClipConfig> = {
   }
 };
 
-const clipArrayPromises: Map<ClipName, Promise<ArrayBuffer | null>> = new Map();
-
-const fetchClipArrayBuffer = (clip: ClipName): Promise<ArrayBuffer | null> => {
-  if (clipArrayPromises.has(clip)) {
-    return clipArrayPromises.get(clip)!;
-  }
-  if (typeof fetch !== "function") {
-    const fallback = Promise.resolve(null);
-    clipArrayPromises.set(clip, fallback);
-    return fallback;
-  }
-  const config = CLIP_CONFIGS[clip];
-  const promise = fetch(config.src)
-    .then((response) => (response.ok ? response.arrayBuffer() : null))
-    .catch(() => null);
-  clipArrayPromises.set(clip, promise);
-  return promise;
-};
-
 const EFFECT_BUILDERS: Record<SoundEffect, (payload?: { magnitude?: number }) => EffectOptions[]> = {
   move: () => [
     {
@@ -135,7 +116,7 @@ class WebAudioEngine {
   private context: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private buffers: Map<ClipName, AudioBuffer> = new Map();
-  private loading: Promise<void> | null = null;
+  private loadPromises: Map<ClipName, Promise<void>> = new Map();
 
   public setEnabled(value: boolean) {
     this.enabled = value;
@@ -156,10 +137,7 @@ class WebAudioEngine {
     if (this.context.state === "suspended") {
       await this.context.resume().catch(() => undefined);
     }
-    if (!this.loading) {
-      this.loading = this.loadBuffers();
-    }
-    await this.loading;
+    await this.loadBuffers();
   }
 
   private async loadBuffers(): Promise<void> {
@@ -169,20 +147,35 @@ class WebAudioEngine {
     const ctx = this.context;
     const clips = Object.keys(CLIP_CONFIGS) as ClipName[];
     await Promise.all(
-      clips.map(async (clip) => {
+      clips.map((clip) => {
         if (this.buffers.has(clip)) {
-          return;
+          return Promise.resolve();
         }
-        const arrayBuffer = await fetchClipArrayBuffer(clip);
-        if (!arrayBuffer) {
-          return;
+        if (this.loadPromises.has(clip)) {
+          return this.loadPromises.get(clip)!;
         }
-        try {
-          const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
-          this.buffers.set(clip, decoded);
-        } catch (error) {
-          console.warn("[WebAudioEngine] decode failed for", clip, error);
+        const config = CLIP_CONFIGS[clip];
+        if (typeof fetch !== "function") {
+          return Promise.resolve();
         }
+        const loadPromise = fetch(config.src)
+          .then((response) => (response.ok ? response.arrayBuffer() : null))
+          .then((arrayBuffer) => {
+            if (!arrayBuffer) {
+              return;
+            }
+            return ctx.decodeAudioData(arrayBuffer.slice(0)).then((decoded) => {
+              this.buffers.set(clip, decoded);
+            });
+          })
+          .catch((error) => {
+            console.warn("[WebAudioEngine] failed to load", config.src, error);
+          })
+          .finally(() => {
+            this.loadPromises.delete(clip);
+          });
+        this.loadPromises.set(clip, loadPromise);
+        return loadPromise;
       })
     );
   }
