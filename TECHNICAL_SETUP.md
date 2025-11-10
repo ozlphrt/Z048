@@ -36,6 +36,11 @@
 - `apps/web_app/public/sw.js` implements a lightweight stale-while-revalidate cache for app shell assets.
 - Service worker registration lives in `apps/web_app/src/main.tsx` and only runs in production builds.
 - When updating brand assets, regenerate icons and redeploy (`docs/` folder) so GitHub Pages serves the latest bundle.
+
+## Audio
+- Procedural “wood click” palette generated in `apps/web_app/src/audio/sound_engine.ts` (no external assets).
+- `SoundProvider` (wrapped in `main.tsx`) manages enable/disable state with local storage persistence.
+- Toggle control lives in `ActionBar`; gameplay events trigger sounds via `useSound()` inside `GameBoard`.
 ## Technical Setup
 
 ### Prerequisites

@@ -2,10 +2,11 @@ import { useLayoutEffect, useRef } from "react";
 import styled from "styled-components";
 import { useGame } from "../state/game_provider";
 import { useThemeSwitcher } from "../state/theme_provider";
+import { useSound } from "../state/sound_provider";
 
 const Bar = styled.div<{ $width: number }>`
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto 1fr auto auto auto;
   width: ${({ $width }) => `${$width}px`};
   gap: 10px;
   align-items: center;
@@ -163,6 +164,10 @@ const Icon = styled.svg`
   stroke-linejoin: round;
 `;
 
+const SoundButton = styled(ActionButton)<{ $active: boolean }>`
+  ${({ $active }) => (!$active ? "opacity: 0.6;" : "")}
+`;
+
 export const ActionBar = ({
   width,
   onHeightChange
@@ -173,6 +178,7 @@ export const ActionBar = ({
   const { undo, canUndo, reset } = useGame();
   const { theme, availableThemes, setThemeByName, appearance, toggleAppearance } =
     useThemeSwitcher();
+  const { enabled: soundEnabled, toggle: toggleSound, play } = useSound();
 
   const barWidth = width ?? 320;
   const barRef = useRef<HTMLDivElement>(null);
@@ -191,9 +197,22 @@ export const ActionBar = ({
     setThemeByName(availableThemes[nextIndex].name);
   };
 
+  const handleUndo = () => {
+    if (!canUndo) {
+      return;
+    }
+    undo();
+    play("undo");
+  };
+
+  const handleReset = () => {
+    reset();
+    play("reset");
+  };
+
   return (
     <Bar ref={barRef} $width={barWidth}>
-      <UndoButton type="button" onClick={undo} disabled={!canUndo} aria-label="Undo">
+      <UndoButton type="button" onClick={handleUndo} disabled={!canUndo} aria-label="Undo">
         <Icon viewBox="0 0 24 24" aria-hidden="true">
           <path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-7.64 14.66" />
           <path d="M3 4v5h5" />
@@ -202,6 +221,15 @@ export const ActionBar = ({
       <ThemeNameButton type="button" onClick={handleThemeToggle}>
         {theme.title ?? theme.name}
       </ThemeNameButton>
+      <SoundButton
+        type="button"
+        onClick={toggleSound}
+        $active={soundEnabled}
+        aria-pressed={soundEnabled}
+        aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
+      >
+        {soundEnabled ? "🔈 Sound" : "🔇 Sound"}
+      </SoundButton>
       <AppearanceToggle
         type="button"
         onClick={toggleAppearance}
@@ -210,7 +238,7 @@ export const ActionBar = ({
       >
         <ToggleHandle>{appearance === "dark" ? "☀" : "☾"}</ToggleHandle>
       </AppearanceToggle>
-      <ActionButton type="button" onClick={reset}>
+      <ActionButton type="button" onClick={handleReset}>
         New Game
       </ActionButton>
     </Bar>
