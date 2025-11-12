@@ -1,4 +1,4 @@
-const CACHE_NAME = "z048-app-shell-v4";
+const CACHE_NAME = "z048-app-shell-v5";
 const ASSET_MATCH = new RegExp("\\.(?:js|css|woff2?|png|svg|webmanifest)$");
 
 self.addEventListener("install", (event) => {

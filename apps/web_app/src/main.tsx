@@ -23,7 +23,8 @@ createRoot(rootElement).render(
 );
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+  const swVersion = "2025-11-12T17-30Z";
+  const swUrl = `${import.meta.env.BASE_URL}sw.js?v=${swVersion}`;
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register(swUrl, { scope: import.meta.env.BASE_URL })
