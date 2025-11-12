@@ -440,4 +440,4 @@ Error generating stack: `+l.message+`
   button {
     font-family: inherit;
   }
-`,Hd=document.getElementById("root");if(!Hd)throw new Error("Root element '#root' not found.");ed(Hd).render($.jsx(z.StrictMode,{children:$.jsxs(Cm,{children:[$.jsx(bm,{}),$.jsx(Ah,{children:$.jsx(Fm,{})})]})}));if("serviceWorker"in navigator){const t="/sw.js?v=2025-11-12T17-30Z";window.addEventListener("load",()=>{navigator.serviceWorker.register(t,{scope:"/"}).catch(()=>{})})}
+`,Hd=document.getElementById("root");if(!Hd)throw new Error("Root element '#root' not found.");ed(Hd).render($.jsx(z.StrictMode,{children:$.jsxs(Cm,{children:[$.jsx(bm,{}),$.jsx(Ah,{children:$.jsx(Fm,{})})]})}));if("serviceWorker"in navigator){const t="/Z048/sw.js?v=2025-11-12T17-30Z";window.addEventListener("load",()=>{navigator.serviceWorker.register(t,{scope:"/Z048/"}).catch(()=>{})})}
