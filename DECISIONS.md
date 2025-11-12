@@ -8,6 +8,7 @@
 | 2025-11-09 | Deployment: Web + PWA + GitHub Pages | Phase 1 scope | Mobile deferred |
 | 2025-11-09 | Undo stored locally with history cap | Acceptance Criterion 2 | Persisted via localStorage with 16-step limit |
 | 2025-11-09 | Manual service worker + static manifest | Keep PWA simple without external plugins | Cache app shell, register via Vite base path |
+| 2025-11-12 | Remove in-app audio | Persistent iOS lag + stutter | Ship silent build; revisit audio later |
 ## Decisions Log
 
 | Date (UTC) | Decision | Rationale | Impact |
@@ -17,4 +18,5 @@
 | 2025-11-09 | Supabase for leaderboard | Free tier, quick REST integration | Deferred to AC3 |
 | 2025-11-09 | Phase 1 web-only PWA | Deliverable via GitHub Pages before mobile | Deployment plan |
 | 2025-11-09 | Custom service worker caching strategy | Lightweight stale-while-revalidate, no Workbox | Fits GitHub Pages constraints |
+| 2025-11-12 | Audio removed from mainline build | iOS Safari throttling caused severe UX regressions | App runs silently until a performant approach is proven |
 

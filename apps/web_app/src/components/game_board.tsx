@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { useEffect, useMemo, type CSSProperties } from "react";
 import styled from "styled-components";
 import { useGame } from "../state/game_provider";
 import { useKeyboard } from "../hooks/use_keyboard";
@@ -6,8 +6,6 @@ import { useSwipe } from "../hooks/use_swipe";
 import { TILE_GAP } from "../constants/layout";
 import { Tile } from "./tile";
 import { useViewportSize } from "../hooks/use_window_width";
-import { useSound } from "../state/sound_provider";
-import type { MoveSummary } from "@modern2048/game_core";
 
 const BOARD_GAP = TILE_GAP;
 
@@ -87,11 +85,8 @@ export const GameBoard = ({
   onBoardWidthChange?: (width: number) => void;
   topOffset?: number;
 }) => {
-  const { state, move, canAcceptInput, undo, canUndo, lastSummary } = useGame();
+  const { state, move, canAcceptInput, undo, canUndo } = useGame();
   const { width: viewportWidth, height: viewportHeight } = useViewportSize();
-  const { play } = useSound();
-  const summaryRef = useRef<MoveSummary | null>(null);
-  const statusRef = useRef(state.status);
 
   const {
     tileSize,
@@ -129,14 +124,7 @@ export const GameBoard = ({
   }, [state.size, viewportHeight, viewportWidth, topOffset]);
 
   const swipeHandlers = useSwipe(move, canAcceptInput, { suppressClickDuringSwipe: true });
-  const handleUndoAction = useCallback(() => {
-    if (!canUndo) {
-      return;
-    }
-    undo();
-    play("undo");
-  }, [canUndo, undo, play]);
-  useKeyboard(move, canAcceptInput, canUndo ? handleUndoAction : undefined);
+  useKeyboard(move, canAcceptInput, canUndo ? undo : undefined);
 
   const backgroundCells = useMemo(
     () =>
@@ -161,36 +149,6 @@ export const GameBoard = ({
   useEffect(() => {
     onBoardWidthChange?.(totalWidth);
   }, [onBoardWidthChange, totalWidth]);
-
-  useEffect(() => {
-    if (!lastSummary || summaryRef.current === lastSummary) {
-      return;
-    }
-    summaryRef.current = lastSummary;
-    if (!lastSummary.moved) {
-      return;
-    }
-    play("move");
-    if (lastSummary.spawnedTile) {
-      play("spawn");
-    }
-    if (lastSummary.mergedValues.length > 0) {
-      const peak = Math.max(...lastSummary.mergedValues);
-      play("merge", { magnitude: peak });
-    }
-  }, [lastSummary, play]);
-
-  useEffect(() => {
-    if (statusRef.current === state.status) {
-      return;
-    }
-    if (state.status === "won") {
-      play("victory");
-    } else if (state.status === "lost") {
-      play("defeat");
-    }
-    statusRef.current = state.status;
-  }, [state.status, play]);
 
   return (
     <BoardShell

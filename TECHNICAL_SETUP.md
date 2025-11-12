@@ -38,9 +38,8 @@
 - When updating brand assets, regenerate icons and redeploy (`docs/` folder) so GitHub Pages serves the latest bundle.
 
 ## Audio
-- Procedural “wood click” palette generated in `apps/web_app/src/audio/sound_engine.ts` (no external assets).
-- `SoundProvider` (wrapped in `main.tsx`) manages enable/disable state with local storage persistence.
-- Toggle control lives in `ActionBar`; gameplay events trigger sounds via `useSound()` inside `GameBoard`.
+- As of 2025-11-12 all runtime audio code and assets have been removed to eliminate iOS performance issues.
+- Future experiments should live on a feature branch and document their impact before merging into `main`.
 ## Technical Setup
 
 ### Prerequisites

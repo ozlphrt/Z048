@@ -36,6 +36,9 @@
 ### Current Focus
 PWA polish — manifest, offline caching, installability on GitHub Pages.
 
+### Recent Changes
+- 2025-11-12: Removed all in-app audio code/assets after repeated mobile latency regressions; revisit later with dedicated profiling.
+
 ### Milestones
 1. Core gameplay UX — **done**
 2. Undo + persistence — **done**

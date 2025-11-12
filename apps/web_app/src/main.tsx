@@ -4,7 +4,6 @@ import App from "./app";
 import { GameProvider } from "./state/game_provider";
 import { GlobalStyles } from "./styles/global_styles";
 import { ThemeProvider } from "./state/theme_provider";
-import { SoundProvider } from "./state/sound_provider";
 
 const rootElement = document.getElementById("root");
 
@@ -15,12 +14,10 @@ if (!rootElement) {
 createRoot(rootElement).render(
   <StrictMode>
     <ThemeProvider>
-      <SoundProvider>
-        <GlobalStyles />
-        <GameProvider>
-          <App />
-        </GameProvider>
-      </SoundProvider>
+      <GlobalStyles />
+      <GameProvider>
+        <App />
+      </GameProvider>
     </ThemeProvider>
   </StrictMode>
 );

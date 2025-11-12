@@ -13,6 +13,7 @@
 - [ ] React Native mobile client scaffolding
 - [ ] Accessibility audit (screen reader, contrast)
 - [ ] Localization framework groundwork
+- [ ] Revisit audio implementation once a performant mobile approach is identified
 ## Task List
 
 - [ ] AC1 — Core gameplay UX (current focus)
